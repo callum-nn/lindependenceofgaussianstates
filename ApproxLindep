@@ -55,10 +55,9 @@ for i in range(numberofvecs):
     ldepstates.append(reducedb); ldepstates.append(mincoeff)
 
 
-# Now we 
-
 basischoice = [i for i in range(4)]
 matrixlist = []
+# this for loop gets rid of the "irrelevant" basis state and uses matrixlist to store (in this case) a matrix of 4 LD Reduced Gaussian States
 for i in range(numberofvecs):
     basischoice = [i for i in range(4)]
     del basischoice[ldepstates[2*i+1][1]]
