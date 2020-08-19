@@ -1,0 +1,70 @@
+# running the code from matrixcircuit
+#basis generation
+cwidth=3; csize=50
+randomcoefficients = np.random.rand(2,6)
+randomcoefficients = 2 * (randomcoefficients - 0.5)
+threegatelist = []; threegatelist.append(matchgate(randomcoefficients[0,:]))
+threegatelist.append(gabmatchgate(snot(),snot())); threegatelist.append(gabmatchgate(sigmax(),sigmaz()))
+
+basismatrix = np.zeros((2**cwidth,2**(cwidth-1)), dtype = complex)
+gaussianbasislist = []
+qubitlines = np.random.randint(cwidth-1, size=(2**cwidth, csize)).tolist();
+gatechoice = np.random.randint(3, size=(2**cwidth, csize)).tolist();
+for i in range(2 ** (cwidth-1)):
+    gaussianbasislist.append(randcircuit(cwidth, threegatelist, qubitlines[i], gatechoice[i]).full()[:,0]);
+    basismatrix[:,i] = gaussianbasislist[i]
+if np.linalg.matrix_rank(basismatrix) != 2**(cwidth-1):
+    print('error')
+
+# now we have a basis for the even parity subspace, which guarantees any Gaussian state we generate now will give us a linearly dependent set.
+# the task now is to keep generating new states until we find that the coefficient of one of the basis states is suitably small for the set
+# to be approximately linearly dependent
+
+bigstatematrix = basismatrix
+
+# for cwidth = 3
+reducedmatrix = bigstatematrix[[0,3,5,6],:]
+# for cwidth = 4
+#reducedmatrix = bigstatematrix[[0,3,5,6,9,10,12,15],:]
+# for cwidth = 5
+#reducedmatrix = bigstatematrix[[0,3,5,6,9,10,12,15,17,18,20,23,24,27,29,30],:]
+
+inverse = np.linalg.inv(reducedmatrix[:,0:2**(cwidth-1)])
+
+counter = 0
+reducedb = [0 for i in range(2**(cwidth-1))]
+mincoeff = [2,0]
+ldepstates = []
+# numberofvecs says how many sets of approximately LD states are wanted
+numberofvecs = 1
+
+
+# This gives us a list of approx LD states and tells us which basis vecs they depend on
+
+for i in range(numberofvecs):
+    mincoeff = [2,0]
+    while mincoeff[0] > 0.01:
+        counter = counter + 1
+        qubitlines = np.random.randint(cwidth-1, size=(csize)).tolist();
+        gatechoice = np.random.randint(3, size=(csize)).tolist();
+        b = randcircuit(cwidth, threegatelist, qubitlines, gatechoice).full()[:,0]
+# change reducedb as above depending on cwidth
+        reducedb = b[[0,3,5,6]]
+        coeff = [abs(np.matmul(inverse,reducedb)[j]) for j in range(2**(cwidth - 1))]
+        mincoeff = [min(coeff),coeff.index(min(coeff)),coeff]
+    ldepstates.append(reducedb); ldepstates.append(mincoeff)
+
+
+# Now we 
+
+basischoice = [i for i in range(4)]
+matrixlist = []
+for i in range(numberofvecs):
+    basischoice = [i for i in range(4)]
+    del basischoice[ldepstates[2*i+1][1]]
+# this is for n=3, be careful
+    matrixholder = np.zeros((2**(cwidth-1),4), dtype = complex)
+    matrixholder[:,0:3] = reducedmatrix[:,basischoice]; matrixholder[:,3] = ldepstates[2*i]
+    matrixlist.append(matrixholder)
+# sanity check that we have approximately LD states
+np.linalg.svd(matrixlist[0])[1][3]
