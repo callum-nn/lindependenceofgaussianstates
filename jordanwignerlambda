@@ -1,0 +1,9 @@
+# will need the jordan wigner function from "" QuadraticHamiltonian ""
+
+cwidth=4;
+# rmb when changing cwidth to change lambdaoperator initialisation
+lambdaoperator = tensor(qzero(2),qzero(2),qzero(2),qzero(2))
+lambdaoperator = tensor(lambdaoperator,lambdaoperator)
+
+for i in range(2*cwidth):
+    lambdaoperator = lambdaoperator + tensor(jordanwigner(i+1,cwidth),jordanwigner(i+1,cwidth))
