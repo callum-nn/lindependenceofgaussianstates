@@ -1,0 +1,64 @@
+%matplotlib inline
+from IPython.display import Image
+from numpy import pi
+import numpy as np
+from qutip import *
+from qutip.qip.operations import *
+from qutip.qip.circuit import QubitCircuit, Gate
+from IPython.display import Audio
+
+def gabmatchgate(A,B):
+    mat = np.zeros((4, 4), dtype=np.complex)
+    mat[0,0] = A[0,0]; mat[0,3] = A[0,1]; mat[1,1] = B[0,0]; mat[1,2] = B[0,1]
+    mat[2,1] = B[1,0]; mat[2,2] = B[1,1]; mat[3,0] = A[1,0]; mat[3,3] = A[1,1];
+    return Qobj(mat, dims=[[2, 2], [2, 2]])
+
+# now defining a random MG given parameters
+def matchgate(vector):
+    mat = tensor((1j*vector[2]*sigmaz()).expm(),(1j*vector[3]*sigmaz()).expm()) * (1j*(vector[4]*tensor(sigmax(),sigmax()) + vector[5]*tensor(sigmay(),sigmay()))).expm() * tensor((1j*vector[0]*sigmaz()).expm(),(1j*vector[1]*sigmaz()).expm())
+    return Qobj(mat, dims=[[2, 2], [2, 2]])
+
+def randcircuit(cwidth, threegatelist, qubitlines, gatechoice):
+# this speeds up the calculation, but is quite messy. I have checked that it works
+    listofmg = []; listofglobalmg = []
+    for k in range(csize):
+        listofmg.append(threegatelist[gatechoice[k]])
+    for k in range(csize):
+        if qubitlines[k] == 0:
+            rightpadding = identity(2)
+            for m in range(0,cwidth-3):
+    # subtract three because already indexed by 1 from starting padding and then 2 to leave space for the MG
+                rightpadding = tensor(identity(2),rightpadding)
+            listofglobalmg.append(tensor(listofmg[k],rightpadding))
+        elif qubitlines[k] == cwidth-2:
+            leftpadding = identity(2)
+            for m in range(0,cwidth-3):
+                leftpadding = tensor(identity(2),leftpadding)
+            listofglobalmg.append(tensor(leftpadding,listofmg[k]))
+        elif 0 < qubitlines[k] < cwidth-2: 
+            leftpadding = identity(2)
+            rightpadding = identity(2)
+            for m in range(0,qubitlines[k]-1):
+                leftpadding = tensor(identity(2),leftpadding)
+            for m in range(0,cwidth-qubitlines[k]-3):
+                rightpadding = tensor(identity(2),rightpadding)
+            listofglobalmg.append(tensor(leftpadding,listofmg[k],rightpadding))
+    overallmgc = listofglobalmg[0]
+    for k in range(1,csize):
+        overallmgc = overallmgc * listofglobalmg[k]
+    return overallmgc
+
+#basis generation, using a circuit constructed from G(H,H), G(X,X) and a suitably random matchgate
+cwidth=3; csize=50
+randomcoefficients = np.random.rand(2,6)
+randomcoefficients = 2 * (randomcoefficients - 0.5)
+threegatelist = []; threegatelist.append(matchgate(randomcoefficients[0,:]))
+threegatelist.append(gabmatchgate(snot(),snot())); threegatelist.append(gabmatchgate(sigmax(),sigmaz()))
+
+basismatrix = np.zeros((2**cwidth,2**(cwidth-1)), dtype = complex)
+gaussianbasislist = []
+qubitlines = np.random.randint(cwidth-1, size=(2**cwidth, csize)).tolist();
+gatechoice = np.random.randint(3, size=(2**cwidth, csize)).tolist();
+for i in range(2 ** (cwidth-1)):
+    gaussianbasislist.append(randcircuit(cwidth, threegatelist, qubitlines[i], gatechoice[i]).full()[:,0]);
+    basismatrix[:,i] = gaussianbasislist[i]
