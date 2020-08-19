@@ -1,0 +1,27 @@
+# In other dimensions, 6 should be (2**(cwdith -1) choose 2)
+matrixofips = np.zeros((numberofvecs,6), dtype = complex)
+# combinations tells you which order the inner products appear in, ie the first inner product entry is that between vector 0 and vector 1
+combinations = [[0, 1], [0, 2], [1, 2], [0,3], [1,3], [2,3]]
+for i in range(numberofvecs):
+    for j in range(6):
+        norm1 = np.dot(matrixlist[i][:,combinations[j][0]], matrixlist[i][:,combinations[j][0]].conj())
+        norm2 = np.dot(matrixlist[i][:,combinations[j][1]], matrixlist[i][:,combinations[j][1]].conj())
+        normedvec1 = (np.sqrt(norm1) ** (-1)) * matrixlist[i][:,combinations[j][0]]
+        normedvec2 = (np.sqrt(norm2) ** (-1)) * matrixlist[i][:,combinations[j][1]]
+        matrixofips[i,j] = (np.dot(normedvec1,normedvec2.conj()))
+# for angles, if you want the real part or the absolute value then us "" matrixofips[i,j] = np.real(matrixofips[i,j]) "" or "" abs ""
+
+# this will order the inner products in terms of increasing abs value or real value depending on what you choose above. Note it has to be a real matrix
+orderedmatrixofips = np.zeros((numberofvecs,6))
+for i in range(numberofvecs):
+    orderedmatrixofips[i,:] = sorted(matrixofips[i,:], reverse = True)
+orderedmatrixofips
+orderedmatrixofangles = np.zeros((numberofvecs,6))
+for i in range(numberofvecs):
+    for j in range(6):
+        orderedmatrixofangles[i,j] = np.arccos(orderedmatrixofips[i,j])
+orderedmatrixofangles
+sumofips = np.zeros((numberofvecs));
+for i in range(numberofvecs):
+    sumofips[i] = np.sum(orderedmatrixofips[i,:])
+matrixofips
